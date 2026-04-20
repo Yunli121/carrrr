@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚘 車務日誌 🚘</title>
-
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -32,7 +31,7 @@
             font-size: 24px;
             font-weight: 900;
             text-align: center;
-            margin: 10px 0 20px 0; /* 調整間距，讓標題在頂部更美觀 */
+            margin-bottom: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -57,7 +56,7 @@
         }
 
         .expense-banner h1 { 
-            font-size: 44px; 
+            font-size: 40px; 
             margin: 0; 
             font-weight: 900; 
             color: #FFFFFF; 
@@ -74,6 +73,7 @@
 
         .section-label { font-size: 18px; font-weight: 900; color: #777; margin-bottom: 10px; display: block; }
         
+        /* 分類統計網格優化 */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -84,7 +84,7 @@
             background: white;
             padding: 12px;
             border-radius: 12px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 800;
             color: #555;
             border-left: 4px solid var(--light-blue);
@@ -107,11 +107,11 @@
         }
         .record-info { display: flex; align-items: center; gap: 12px; }
         .record-icon { font-size: 24px; }
-        .record-details b { display: block; font-size: 18px; font-weight: 900; color: #333; }
+        .record-details b { display: block; font-size: 17px; font-weight: 900; color: #333; line-height: 1.4; }
         .record-details small { color: #BBB; font-size: 13px; font-weight: 500; }
         
         .record-right { display: flex; align-items: center; gap: 12px; }
-        .record-amount { font-size: 19px; font-weight: 900; color: var(--primary-blue); }
+        .record-amount { font-size: 18px; font-weight: 900; color: var(--primary-blue); }
         .delete-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0; opacity: 0.5; }
 
         .floating-add-btn {
@@ -144,8 +144,7 @@
     <div class="container">
         <div class="header-title">☁️ 車務日誌 ☁️</div>
         
-        <div class="expense-banner">
-            <span id="banner-month">--月總支出</span>
+        <div class="expense-banner">            <span id="banner-month">--月總支出</span>
             <h1 id="total-display">$ 0</h1>
         </div>
 
@@ -178,18 +177,19 @@
 
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-content">
-            <div style="color:var(--primary-blue); font-weight:900; font-size:20px; text-align:center; margin-bottom:15px;">新增紀錄</div>
+            <div style="color:var(--primary-blue); font-weight:900; font-size:20px; text-align:center; margin-bottom:15px;">新增</div>
             <input type="date" class="input-field" id="datePicker">
             
             <select class="input-field" id="categoryPicker" onchange="checkCategory()">
                 <option value="油費" data-icon="⛽">油費 ⛽</option>
                 <option value="保養" data-icon="🛠️">保養 🛠️</option>
                 <option value="車檢" data-icon="🔍">車檢 🔍</option>
+                <option value="保險" data-icon="📝">保險 📝</option>
                 <option value="其他" data-icon="✨">其他 ✨</option>
             </select>
 
             <div id="extraNoteGroup">
-                <input type="text" class="input-field" id="noteInput" placeholder="項目說明 (如：換機油、定檢)">
+                <input type="text" class="input-field" id="noteInput" placeholder="項目說明">
             </div>
 
             <input type="number" class="input-field" id="amountInput" placeholder="輸入金額" inputmode="numeric">
@@ -202,8 +202,7 @@
     </div>
 
     <script>
-        // 資料與邏輯部分保持不變
-        let allRecords = JSON.parse(localStorage.getItem('carLogs')) || [];
+        let allRecords = [];
 
         function initDates() {
             const now = new Date();
@@ -211,10 +210,8 @@
             const m = String(now.getMonth() + 1).padStart(2, '0');
             const d = String(now.getDate()).padStart(2, '0');
             const yearSelect = document.getElementById('yearFilter');
-            
             if (y >= 2026 && y <= 2030) yearSelect.value = y;
             else yearSelect.value = "2026";
-            
             document.getElementById('monthFilter').value = m;
             document.getElementById('datePicker').value = `${y}-${m}-${d}`;
         }
@@ -224,9 +221,12 @@
             const noteGroup = document.getElementById('extraNoteGroup');
             const noteInput = document.getElementById('noteInput');
             
-            if (cat === "保養" || cat === "車檢") {
+            if (cat !== "油費") {
                 noteGroup.style.display = "block";
-                noteInput.placeholder = cat === "保養" ? "保養內容 (如：換機油)" : "檢驗項目 (如：定檢)";
+                if (cat === "保養") noteInput.placeholder = "保養內容 (如：換機油)";
+                else if (cat === "車檢") noteInput.placeholder = "檢驗項目 (如：定檢)";
+                else if (cat === "保險") noteInput.placeholder = "保險種類 (如：強制險)";
+                else noteInput.placeholder = "項目說明 (如：洗車、停車費)";
             } else {
                 noteGroup.style.display = "none";
                 noteInput.value = "";
@@ -256,13 +256,12 @@
                 month: dateVal.split('-')[1],
                 fullDate: dateVal,
                 category: catSelect.value,
-                note: ((catSelect.value === "保養" || catSelect.value === "車檢") && noteVal) ? noteVal : "",
+                note: (catSelect.value !== "油費" && noteVal) ? noteVal : "",
                 icon: catSelect.options[catSelect.selectedIndex].getAttribute('data-icon'),
                 amount: amountVal,
                 createTime: new Date().getTime()
             });
             
-            localStorage.setItem('carLogs', JSON.stringify(allRecords));
             render();
             document.getElementById('amountInput').value = '';
             document.getElementById('noteInput').value = '';
@@ -272,7 +271,6 @@
         function deleteRecord(id) {
             if(confirm('確定要刪除嗎？')) {
                 allRecords = allRecords.filter(r => r.id !== id);
-                localStorage.setItem('carLogs', JSON.stringify(allRecords));
                 render();
             }
         }
@@ -286,15 +284,15 @@
             
             document.getElementById('banner-month').innerText = `${parseInt(fMonth)}月總支出`;
 
-            const stats = { "油費": 0, "保養": 0, "車檢": 0, "其他": 0 };
-            const icons = { "油費": "⛽", "保養": "🛠️", "車檢": "🔍", "其他": "✨" };
+            const stats = { "油費": 0, "保養": 0, "車檢": 0, "保險": 0, "其他": 0 };
+            const icons = { "油費": "⛽", "保養": "🛠️", "車檢": "🔍", "保險": "📝", "其他": "✨" };
             let total = 0;
 
             const filtered = allRecords.filter(r => r.year === fYear && r.month === fMonth);
             
             filtered.forEach(r => {
                 const amt = Number(r.amount) || 0;
-                stats[r.category] += amt;
+                if(stats[r.category] !== undefined) stats[r.category] += amt;
                 total += amt;
             });
 
