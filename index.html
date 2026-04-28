@@ -3,10 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>🚘 車務日誌 🚘</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <script type="module">
+        // 【核心修正】每次你改完程式碼上傳 GitHub，就把這個數字加 1 (例如改為 1.0.2)
+        // 這樣「加入主畫面」的 App 就會知道要強制更新了！
+        const APP_VERSION = "1.0.1";
+
+        // 檢查版本的邏輯
+        const lastVersion = localStorage.getItem('app_version');
+        if (lastVersion !== APP_VERSION) {
+            localStorage.setItem('app_version', APP_VERSION);
+            // 強制瀏覽器無視快取重新整理一次
+            window.location.reload(true);
+        }
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -142,12 +155,11 @@
             --light-blue: #B2DFFC; 
             --header-text: #2C3E50; 
             --bg-color: #F8FBFF; 
-            --border-color: #D1E9FF; /* 淺藍小框框顏色 */
+            --border-color: #D1E9FF;
         }
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
             background-color: var(--bg-color); 
-            /* 交錯小點點背景 */
             background-image: radial-gradient(var(--light-blue) 2px, transparent 2px), 
                               radial-gradient(var(--light-blue) 2px, transparent 2px);
             background-size: 50px 50px;
@@ -156,6 +168,8 @@
             padding: 0; 
             transition: 0.3s; 
             min-height: 100vh;
+            /* 避免 iOS 回彈效果 */
+            overscroll-behavior-y: contain;
         }
         
         .page { padding: 20px 20px 100px 20px; display: none; }
@@ -176,12 +190,11 @@
         .expense-banner span { font-size: 18px; font-weight: 900; color: var(--header-text); display: block; margin-bottom: 8px; opacity: 0.8; }
         .expense-banner h1 { font-size: 52px; margin: 0; font-weight: 900; color: #FFFFFF; text-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         
-        /* 篩選器部分：加上細邊框 */
         .filter-group { display: flex; gap: 12px; margin-bottom: 25px; }
         .filter-select { 
             flex: 1; 
             background: white; 
-            border: 2px solid var(--border-color); /* 新增小框框 */
+            border: 2px solid var(--border-color);
             padding: 12px; 
             border-radius: 20px; 
             color: var(--primary-blue); 
