@@ -27,7 +27,6 @@
 
         let currentUser = null;
 
-        // --- 登入/登出 ---
         window.handleAuth = async () => {
             if (!currentUser) {
                 try { await signInWithPopup(auth, provider); } catch (e) { alert("登入失敗"); }
@@ -36,7 +35,6 @@
             }
         };
 
-        // --- 監聽登入狀態 ---
         onAuthStateChanged(auth, (user) => {
             const avatar = document.getElementById('user-avatar');
             const nameTxt = document.getElementById('user-name');
@@ -58,10 +56,11 @@
                 authBtn.innerText = "Google 登入";
                 document.getElementById('history-list').innerHTML = '<p style="text-align:center; color:#ccc; margin-top:30px;">請先登入以同步雲端資料</p>';
                 document.getElementById('total-display').innerText = "$ 0";
+                document.getElementById('statsGrid').innerHTML = ""; // 清空統計
+                window.allRecords = []; 
             }
         });
 
-        // --- Firebase 資料操作 ---
         function loadCloudData(uid) {
             const q = query(collection(db, "users", uid, "logs"), orderBy("createTime", "desc"));
             onSnapshot(q, (snapshot) => {
@@ -69,7 +68,7 @@
                 snapshot.forEach((doc) => {
                     window.allRecords.push({ docId: doc.id, ...doc.data() });
                 });
-                window.render(); // 呼叫原本的渲染函數
+                window.render(); // 重要：抓到雲端資料後立刻重新渲染畫面
             });
         }
 
@@ -83,51 +82,31 @@
             await deleteDoc(doc(db, "users", currentUser.uid, "logs", docId));
         };
 
-        // --- 頁面切換 ---
-        window.switchTab = (tab) => {
+        window.switchTab = (tab, el) => {
             document.getElementById('log-page').style.display = tab === 'log' ? 'block' : 'none';
             document.getElementById('set-page').style.display = tab === 'set' ? 'block' : 'none';
-            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+            if(tab === 'log') window.render(); // 切換回來時確保統計有刷新
         };
     </script>
 
     <style>
-        :root {
-            --primary-blue: #5D9CEC;
-            --header-text: #2C3E50;
-            --light-blue: #B2DFFC;
-            --bg-color: #F8FBFF;
-        }
-
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 0; /* 移除原本的 padding，改由分頁控制 */
-            color: #333;
-        }
-
+        :root { --primary-blue: #5D9CEC; --header-text: #2C3E50; --light-blue: #B2DFFC; --bg-color: #F8FBFF; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: #333; }
         .page { padding: 20px 20px 100px 20px; display: none; }
         .page.active { display: block; }
-
         .container { width: 100%; max-width: 450px; margin: 0 auto; }
-
-        /* 繼承你原本的所有樣式 */
         .header-title { color: var(--primary-blue); font-size: 24px; font-weight: 900; text-align: center; margin-bottom: 20px; }
         .expense-banner { background-color: var(--light-blue); padding: 25px 20px; border-radius: 30px; box-shadow: 0 10px 20px rgba(93, 156, 236, 0.15); text-align: center; margin-bottom: 20px; }
         .expense-banner span { font-size: 20px; font-weight: 900; color: var(--header-text); display: block; margin-bottom: 10px; }
         .expense-banner h1 { font-size: 44px; margin: 0; font-weight: 900; color: #FFFFFF; text-shadow: 0 2px 5px rgba(0,0,0,0.15); }
-        
         .filter-group { display: flex; gap: 12px; margin-bottom: 20px; }
         .filter-select { flex: 1; background: white; border: 2px solid #E0E7FF; padding: 10px; border-radius: 15px; color: var(--primary-blue); font-size: 17px; font-weight: 800; text-align: center; outline: none; height: 48px; }
-
         .section-label { font-size: 18px; font-weight: 900; color: #777; margin-bottom: 10px; display: block; }
-        
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
-        .stats-item { background: white; padding: 12px 15px; border-radius: 15px; font-size: 15px; font-weight: 800; color: #555; border-left: 5px solid var(--light-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
+        .stats-item { background: white; padding: 12px 15px; border-radius: 15px; font-size: 14px; font-weight: 800; color: #555; border-left: 5px solid var(--light-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
         .stats-item span:last-child { color: var(--primary-blue); }
-
         .record-card { background: white; padding: 15px 18px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .record-info { display: flex; align-items: center; gap: 12px; }
         .record-icon { font-size: 26px; }
@@ -136,24 +115,18 @@
         .record-right { display: flex; align-items: center; gap: 12px; }
         .record-amount { font-size: 19px; font-weight: 900; color: var(--primary-blue); }
         .delete-btn { background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.4; }
-
-        /* 底部導覽列樣式 */
         .tab-bar { position: fixed; bottom: 0; width: 100%; height: 75px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #EEE; z-index: 1000; }
-        .tab-item { display: flex; flex-direction: column; align-items: center; color: #BBB; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .tab-item { display: flex; flex-direction: column; align-items: center; color: #BBB; font-size: 12px; font-weight: bold; cursor: pointer; flex: 1; height: 100%; justify-content: center; }
         .tab-item.active { color: var(--primary-blue); }
         .tab-icon { font-size: 24px; margin-bottom: 4px; }
-
-        /* 設定頁面樣式 */
         .profile-card { background: white; padding: 20px; border-radius: 25px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .user-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--light-blue); }
         .menu-list { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
         .menu-item { padding: 18px 20px; border-bottom: 1px solid #F5F5F5; display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
-
-        /* Modal 樣式保持不變 */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 2000; }
         .modal-content { background: white; width: 88%; max-width: 360px; padding: 25px; border-radius: 30px; }
-        .input-field { width: 100%; height: 50px; border: 2px solid #F2F4F7; border-radius: 15px; padding: 0 15px; margin-bottom: 15px; font-size: 17px; font-weight: 800; box-sizing: border-box; outline: none; background-color: #F9FAFB; }
-        .floating-add-btn { position: fixed; right: 25px; bottom: 100px; width: 65px; height: 65px; background-color: var(--primary-blue); color: white; border: none; border-radius: 50%; font-size: 35px; box-shadow: 0 10px 25px rgba(93, 156, 236, 0.4); z-index: 99; }
+        .input-field { width: 100%; height: 50px; border: 2px solid #F2F4F7; border-radius: 15px; padding: 0 15px; margin-bottom: 15px; font-size: 17px; font-weight: 800; box-sizing: border-box; outline: none; background-color: #F9FAFB; font-family: inherit; }
+        .floating-add-btn { position: fixed; right: 25px; bottom: 95px; width: 65px; height: 65px; background-color: var(--primary-blue); color: white; border: none; border-radius: 50%; font-size: 35px; box-shadow: 0 10px 25px rgba(93, 156, 236, 0.4); z-index: 99; }
     </style>
 </head>
 <body>
@@ -185,7 +158,7 @@
         <div class="container">
             <div class="header-title">⚙️ 系統設定</div>
             <div class="profile-card">
-                <img id="user-avatar" src="" class="user-avatar">
+                <img id="user-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="user-avatar">
                 <div style="flex:1">
                     <div id="user-name" style="font-weight:900; font-size:20px;">訪客模式</div>
                     <div id="sync-text" style="font-size:13px; color:#888;">登入後即可同步雲端</div>
@@ -193,21 +166,18 @@
                 <button id="auth-btn" style="background:var(--light-blue); color:var(--primary-blue); border:none; padding:8px 15px; border-radius:12px; font-weight:900;" onclick="handleAuth()">登入</button>
             </div>
             <div class="menu-list">
-                <div class="menu-item"><span>📤 數據匯入與匯出</span><span>▶</span></div>
                 <div class="menu-item"><span>🎨 主題配色</span><span style="color:var(--primary-blue)">奶藍色</span></div>
-                <div class="menu-item"><span>ℹ️ 版本說明</span><span style="color:#CCC">v1.0.1</span></div>
+                <div class="menu-item"><span>ℹ️ 版本說明</span><span style="color:#CCC">v1.0.2</span></div>
             </div>
         </div>
     </div>
 
     <div class="tab-bar">
-        <div class="tab-item active" onclick="switchTab('log')">
-            <span class="tab-icon">📋</span>
-            <div>車務清單</div>
+        <div class="tab-item active" onclick="switchTab('log', this)">
+            <span class="tab-icon">📋</span><div>車務清單</div>
         </div>
-        <div class="tab-item" onclick="switchTab('set')">
-            <span class="tab-icon">⚙️</span>
-            <div>設定</div>
+        <div class="tab-item" onclick="switchTab('set', this)">
+            <span class="tab-icon">⚙️</span><div>設定</div>
         </div>
     </div>
 
@@ -223,7 +193,7 @@
             </select>
             <div id="extraNoteGroup"><input type="text" class="input-field" id="noteInput" placeholder="項目說明"></div>
             <input type="number" class="input-field" id="amountInput" placeholder="輸入金額" inputmode="numeric">
-            <div class="modal-footer" style="display:flex; gap:10px;">
+            <div style="display:flex; gap:10px; margin-top:10px;">
                 <button style="flex:1; height:50px; border-radius:15px; border:none; background:#F2F4F7; font-weight:900; color:#888;" onclick="toggleModal(false)">取消</button>
                 <button style="flex:1; height:50px; border-radius:15px; border:none; background:var(--light-blue); color:var(--primary-blue); font-weight:900;" onclick="handleSave()">儲存</button>
             </div>
@@ -231,14 +201,16 @@
     </div>
 
     <script>
-        // --- 原本的邏輯 (一字未改，僅接上 Firebase) ---
         window.allRecords = [];
 
         function initDates() {
             const now = new Date();
-            document.getElementById('yearFilter').value = now.getFullYear();
-            document.getElementById('monthFilter').value = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('yearFilter').value = y;
+            document.getElementById('monthFilter').value = m;
             document.getElementById('datePicker').valueAsDate = now;
+            document.getElementById('banner-month').innerText = `${parseInt(m)}月總支出`;
         }
 
         function checkCategory() {
@@ -254,7 +226,6 @@
             const dateVal = document.getElementById('datePicker').value;
             const catSelect = document.getElementById('categoryPicker');
             const amountVal = parseInt(document.getElementById('amountInput').value);
-
             if (!amountVal) return alert('請輸入金額！');
             
             const newRecord = {
@@ -262,21 +233,19 @@
                 month: dateVal.split('-')[1],
                 fullDate: dateVal,
                 category: catSelect.value,
-                note: document.getElementById('noteInput').value,
+                note: document.getElementById('noteInput').value || "",
                 icon: catSelect.options[catSelect.selectedIndex].getAttribute('data-icon'),
                 amount: amountVal,
                 createTime: Date.now()
             };
-
-            await window.saveToCloud(newRecord); // 存到雲端
+            await window.saveToCloud(newRecord);
             toggleModal(false);
             document.getElementById('amountInput').value = "";
+            document.getElementById('noteInput').value = "";
         }
 
         async function deleteRecord(docId) {
-            if(confirm('確定要刪除嗎？')) {
-                await window.deleteFromCloud(docId); // 從雲端刪除
-            }
+            if(confirm('確定要刪除嗎？')) await window.deleteFromCloud(docId);
         }
 
         window.render = function() {
@@ -290,8 +259,9 @@
 
             const filtered = window.allRecords.filter(r => r.year === fYear && r.month === fMonth);
             filtered.forEach(r => {
-                stats[r.category] += Number(r.amount);
-                total += Number(r.amount);
+                const amt = Number(r.amount) || 0;
+                if(stats[r.category] !== undefined) stats[r.category] += amt;
+                total += amt;
             });
 
             document.getElementById('total-display').innerText = `$ ${total.toLocaleString()}`;
@@ -299,7 +269,7 @@
                 <div class="stats-item"><span>${icons[name]} ${name}</span><span>$${val.toLocaleString()}</span></div>
             `).join('');
 
-            document.getElementById('history-list').innerHTML = filtered.map(r => `
+            document.getElementById('history-list').innerHTML = filtered.length ? filtered.map(r => `
                 <div class="record-card">
                     <div class="record-info">
                         <div class="record-icon">${r.icon}</div>
@@ -313,8 +283,12 @@
                         <button class="delete-btn" onclick="deleteRecord('${r.docId}')">🗑️</button>
                     </div>
                 </div>
-            `).join('');
+            `).join('') : '<p style="text-align:center; color:#ccc; font-weight:700; margin-top:30px;">目前無紀錄</p>';
         }
+
+        document.getElementById('modalOverlay').addEventListener('click', (e) => {
+            if (e.target.id === 'modalOverlay') toggleModal(false);
+        });
 
         initDates();
     </script>
