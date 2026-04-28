@@ -98,6 +98,36 @@
             }
         };
 
+        window.exportData = () => {
+            if (window.allRecords.length === 0) return alert("目前沒有資料可以匯出喔！");
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.allRecords));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `車務日誌備份_${new Date().toLocaleDateString()}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        };
+
+        window.importData = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (confirm("匯入將會取代目前的資料，確定嗎？")) {
+                        window.allRecords = imported;
+                        saveLocalData();
+                        alert("匯入成功！");
+                    }
+                } catch (err) {
+                    alert("檔案格式不正確！");
+                }
+            };
+            reader.readAsText(file);
+        };
+
         window.changeTheme = (color, lightColor) => {
             document.documentElement.style.setProperty('--primary-blue', color);
             document.documentElement.style.setProperty('--light-blue', lightColor);
@@ -107,31 +137,79 @@
     </script>
 
     <style>
-        :root { --primary-blue: #5D9CEC; --light-blue: #B2DFFC; --header-text: #2C3E50; --bg-color: #F8FBFF; }
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; transition: 0.3s; }
+        :root { 
+            --primary-blue: #5D9CEC; 
+            --light-blue: #B2DFFC; 
+            --header-text: #2C3E50; 
+            /* 背景基礎色，設為非常淡的藍灰色 */
+            --bg-color: #F0F5FA; 
+        }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: var(--bg-color); 
+            /* 圓點點背景圖案 CSS */
+            background-image: radial-gradient(var(--light-blue) 1.5px, transparent 1.5px);
+            background-size: 20px 20px;
+            /* 調整透明度，讓點點看起來淡淡的 */
+            background-blend-mode: overlay;
+            margin: 0; 
+            padding: 0; 
+            transition: 0.3s; 
+            min-height: 100vh;
+        }
+        
         .page { padding: 20px 20px 100px 20px; display: none; }
         .page.active { display: block; }
-        .container { width: 100%; max-width: 450px; margin: 0 auto; }
-        .header-title { color: var(--primary-blue); font-size: 24px; font-weight: 900; text-align: center; margin-bottom: 20px; }
-        .expense-banner { background-color: var(--light-blue); padding: 25px 20px; border-radius: 30px; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .container { width: 100%; max-width: 450px; margin: 0 auto; position: relative; z-index: 1; }
+        .header-title { color: var(--primary-blue); font-size: 24px; font-weight: 900; text-align: center; margin-bottom: 20px; text-shadow: 0 2px 0px white; }
+        
+        /* Banner 背景微調，加上邊框凸顯 */
+        .expense-banner { 
+            background-color: var(--light-blue); 
+            padding: 25px 20px; 
+            border-radius: 30px; 
+            text-align: center; 
+            margin-bottom: 20px; 
+            border: 3px solid var(--header-text);
+            box-shadow: 6px 6px 0px var(--header-text); 
+        }
         .expense-banner span { font-size: 18px; font-weight: 900; color: var(--header-text); display: block; margin-bottom: 5px; }
-        .expense-banner h1 { font-size: 44px; margin: 0; font-weight: 900; color: #FFFFFF; }
+        .expense-banner h1 { font-size: 44px; margin: 0; font-weight: 900; color: #FFFFFF; text-shadow: 2px 2px 0px var(--header-text); }
+        
         .filter-group { display: flex; gap: 12px; margin-bottom: 20px; }
-        .filter-select { flex: 1; background: white; border: 2px solid #E0E7FF; padding: 10px; border-radius: 15px; color: var(--primary-blue); font-size: 16px; font-weight: 800; text-align: center; outline: none; height: 48px; }
-        .section-label { font-size: 18px; font-weight: 900; color: #777; margin-bottom: 10px; display: block; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
-        .stats-item { background: white; padding: 12px 15px; border-radius: 15px; font-size: 14px; font-weight: 800; border-left: 5px solid var(--light-blue); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .stats-item span:last-child { color: var(--primary-blue); }
-        .record-card { background: white; padding: 15px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .tab-bar { position: fixed; bottom: 0; width: 100%; height: 75px; background: white; display: flex; border-top: 1px solid #EEE; z-index: 1000; }
+        .filter-select { flex: 1; background: white; border: 3px solid var(--header-text); padding: 10px; border-radius: 15px; color: var(--header-text); font-size: 16px; font-weight: 800; text-align: center; outline: none; height: 48px; box-shadow: 4px 4px 0px var(--header-text); cursor: pointer; }
+        
+        .section-label { font-size: 18px; font-weight: 900; color: var(--header-text); margin: 25px 0 10px 5px; display: block; text-shadow: 0 1px 0px white; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
+        .stats-item { background: white; padding: 15px; border-radius: 18px; font-size: 14px; font-weight: 800; border: 3px solid var(--header-text); display: flex; justify-content: space-between; align-items: center; box-shadow: 4px 4px 0px var(--header-text); color: var(--header-text); }
+        .stats-item span:last-child { color: var(--primary-blue); font-size: 16px; font-weight: 900; }
+        
+        /* 明細卡片微調 */
+        .record-card { background: white; padding: 15px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border: 3px solid var(--header-text); box-shadow: 4px 4px 0px var(--header-text); }
+        
+        .tab-bar { position: fixed; bottom: 0; width: 100%; height: 75px; background: white; display: flex; border-top: 3px solid var(--header-text); z-index: 1000; }
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #BBB; font-weight: bold; font-size: 12px; cursor: pointer; }
         .tab-item.active { color: var(--primary-blue); }
-        .profile-card { background: white; padding: 20px; border-radius: 25px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
-        .color-dot { width: 35px; height: 35px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; }
-        .floating-add-btn { position: fixed; right: 25px; bottom: 95px; width: 65px; height: 65px; background-color: var(--primary-blue); color: white; border: none; border-radius: 50%; font-size: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 99; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: white; width: 85%; max-width: 360px; padding: 25px; border-radius: 25px; }
-        .input-field { width: 100%; height: 48px; border: 2px solid #F2F4F7; border-radius: 12px; padding: 0 15px; margin-bottom: 12px; box-sizing: border-box; font-size: 16px; font-weight: 800; font-family: inherit; }
+        
+        .profile-card { background: white; padding: 20px; border-radius: 25px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border: 3px solid var(--header-text); box-shadow: 5px 5px 0px var(--header-text); }
+        .menu-list { background: white; border-radius: 25px; overflow: hidden; border: 3px solid var(--header-text); box-shadow: 5px 5px 0px var(--header-text); margin-bottom: 20px; }
+        .menu-item { padding: 18px 20px; border-bottom: 2px solid var(--header-text); display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--header-text); cursor: pointer; }
+        .menu-item:last-child { border-bottom: none; }
+        
+        .color-dot { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--header-text); box-shadow: 3px 3px 0px var(--header-text); cursor: pointer; transition: 0.1s; }
+        .color-dot:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--header-text); }
+
+        .floating-add-btn { position: fixed; right: 25px; bottom: 95px; width: 65px; height: 65px; background-color: var(--primary-blue); color: white; border: 3px solid var(--header-text); border-radius: 50%; font-size: 35px; box-shadow: 5px 5px 0px var(--header-text); z-index: 99; cursor: pointer; transition: 0.1s; display: flex; align-items: center; justify-content: center; }
+        .floating-add-btn:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0px var(--header-text); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; width: 85%; max-width: 380px; padding: 25px; border-radius: 25px; border: 4px solid var(--header-text); box-shadow: 8px 8px 0px rgba(0,0,0,0.2); }
+        .input-field { width: 100%; height: 50px; border: 3px solid var(--header-text); border-radius: 12px; padding: 0 15px; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; font-weight: 800; font-family: inherit; color: var(--header-text); }
+        .input-field:focus { border-color: var(--primary-blue); outline: none; }
+        
+        .modal-btn { flex: 1; height: 50px; border-radius: 12px; border: 3px solid var(--header-text); font-weight: 900; font-size: 16px; cursor: pointer; transition: 0.1s; }
+        .modal-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--header-text); }
     </style>
 </head>
 <body>
@@ -156,34 +234,50 @@
             <span class="section-label">支出明細</span>
             <div id="history-list"></div>
         </div>
-        <button class="floating-add-btn" onclick="toggleModal(true)">+</button>
+        <button class="floating-add-btn" onclick="toggleModal(true)"><span>+</span></button>
     </div>
 
     <div id="set-page" class="page">
         <div class="container">
             <div class="header-title">⚙️ 設定</div>
             <div class="profile-card">
-                <img id="user-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:50px; border-radius:50%;">
-                <div style="flex:1"><b id="user-name">訪客模式</b><br><small style="color:#888">登入可同步雲端資料</small></div>
-                <button id="auth-btn" onclick="handleAuth()" style="border:none; background:var(--light-blue); color:var(--primary-blue); padding:8px 15px; border-radius:10px; font-weight:900;">登入</button>
+                <img id="user-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:50px; height:50px; border-radius:50%; border: 2px solid var(--header-text);">
+                <div style="flex:1"><b id="user-name" style="color:var(--header-text); font-size:18px;">訪客模式</b><br><small style="color:#666">登入可同步雲端資料</small></div>
+                <button id="auth-btn" onclick="handleAuth()" style="border:3px solid var(--header-text); background:var(--light-blue); color:var(--header-text); padding:8px 15px; border-radius:10px; font-weight:900; cursor:pointer; box-shadow: 3px 3px 0px var(--header-text);">登入</button>
             </div>
+            
+            <div class="section-label">資料備份 (JSON)</div>
+            <div class="menu-list">
+                <div class="menu-item" onclick="exportData()">
+                    <span>📤 匯出備份檔案</span>
+                    <span style="color:var(--primary-blue); font-size: 14px; font-weight: 900;">下載</span>
+                </div>
+                <label class="menu-item">
+                    <span>📥 匯入備份檔案</span>
+                    <span style="color:var(--primary-blue); font-size: 14px; font-weight: 900;">選擇檔案</span>
+                    <input type="file" accept=".json" style="display:none;" onchange="importData(event)">
+                </label>
+            </div>
+
             <div class="section-label">主題配色</div>
-            <div class="profile-card" style="justify-content: space-around;">
+            <div class="profile-card" style="justify-content: space-around; padding: 25px;">
                 <div class="color-dot" style="background:#5D9CEC" onclick="changeTheme('#5D9CEC','#B2DFFC')"></div>
                 <div class="color-dot" style="background:#FF9AA2" onclick="changeTheme('#FF9AA2','#FFD1D4')"></div>
                 <div class="color-dot" style="background:#B5EAD7" onclick="changeTheme('#46C495','#B5EAD7')"></div>
                 <div class="color-dot" style="background:#FFDAC1" onclick="changeTheme('#E69A6A','#FFDAC1')"></div>
             </div>
+            <div style="text-align: center; color: var(--header-text); opacity: 0.5; font-size: 12px; margin-top: 30px; font-weight: bold;">v1.0.4 · 魚魚專屬點點版</div>
         </div>
     </div>
 
     <div class="tab-bar">
-        <div class="tab-item active" onclick="switchTab('log', this)"><span style="font-size:22px;">📋</span>日誌</div>
-        <div class="tab-item" onclick="switchTab('set', this)"><span style="font-size:22px;">⚙️</span>設定</div>
+        <div class="tab-item active" onclick="switchTab('log', this)"><span style="font-size:24px; margin-bottom:3px;">📋</span>日誌</div>
+        <div class="tab-item" onclick="switchTab('set', this)"><span style="font-size:24px; margin-bottom:3px;">⚙️</span>設定</div>
     </div>
 
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-content">
+            <div style="color:var(--header-text); font-weight:900; font-size:22px; text-align:center; margin-bottom:20px; text-shadow: 0 1px 0px white;">新增項目</div>
             <input type="date" id="datePicker" class="input-field">
             <select id="categoryPicker" class="input-field" onchange="checkCategory()">
                 <option value="油費" data-icon="⛽">油費 ⛽</option>
@@ -191,11 +285,11 @@
                 <option value="車檢" data-icon="🔍">車檢 🔍</option>
                 <option value="其他" data-icon="✨">其他 ✨</option>
             </select>
-            <div id="extraNoteGroup" style="display:none;"><input type="text" id="noteInput" class="input-field" placeholder="備註"></div>
-            <input type="number" id="amountInput" class="input-field" placeholder="金額" inputmode="numeric">
-            <div style="display:flex; gap:10px;">
-                <button style="flex:1; height:48px; border-radius:12px; border:none; background:#EEE; font-weight:900;" onclick="toggleModal(false)">取消</button>
-                <button style="flex:1; height:48px; border-radius:12px; border:none; background:var(--light-blue); color:var(--primary-blue); font-weight:900;" onclick="handleSave()">儲存</button>
+            <div id="extraNoteGroup" style="display:none;"><input type="text" id="noteInput" class="input-field" placeholder="備註 (保養內容/項目說明)"></div>
+            <input type="number" id="amountInput" class="input-field" placeholder="金額 (數字)" inputmode="numeric">
+            <div style="display:flex; gap:15px; margin-top:10px;">
+                <button class="modal-btn" style="background:#EEE; color:#555; box-shadow: 4px 4px 0px #888;" onclick="toggleModal(false)">取消</button>
+                <button class="modal-btn" style="background:var(--light-blue); color:var(--header-text); box-shadow: 4px 4px 0px var(--header-text);" onclick="handleSave()">儲存</button>
             </div>
         </div>
     </div>
@@ -260,15 +354,15 @@
             
             document.getElementById('history-list').innerHTML = filtered.length ? filtered.map(r => `
                 <div class="record-card">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="font-size:24px;">${r.icon}</span>
-                        <div><b>${r.category} ${r.note ? `<small style="color:var(--primary-blue)">(${r.note})</small>` : ''}</b><br><small style="color:#BBB">${r.fullDate}</small></div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:28px;">${r.icon}</span>
+                        <div><b style="color:var(--header-text); font-size:17px;">${r.category} ${r.note ? `<small style="color:var(--primary-blue); font-weight:700;">(${r.note})</small>` : ''}</b><br><small style="color:#999; font-weight:500;">${r.fullDate}</small></div>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="font-weight:900; color:var(--primary-blue)">$${r.amount.toLocaleString()}</span>
-                        <button style="background:none; border:none; opacity:0.2;" onclick="deleteRecordFromApp(${r.id}, '${r.docId||''}')">🗑️</button>
+                        <span style="font-weight:900; color:var(--primary-blue); font-size:18px;">$${r.amount.toLocaleString()}</span>
+                        <button style="background:none; border:none; opacity:0.3; cursor:pointer; font-size:18px;" onclick="deleteRecordFromApp(${r.id}, '${r.docId||''}')">🗑️</button>
                     </div>
-                </div>`).join('') : '<p style="text-align:center; color:#ccc; margin-top:30px;">目前無紀錄</p>';
+                </div>`).join('') : '<p style="text-align:center; color:#AAA; margin-top:40px; font-weight:bold;">目前無紀錄</p>';
         };
         init();
     </script>
