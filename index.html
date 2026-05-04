@@ -9,14 +9,11 @@
     
     <script type="module">
         // 【核心修正】每次你改完程式碼上傳 GitHub，就把這個數字加 1 (例如改為 1.0.2)
-        // 這樣「加入主畫面」的 App 就會知道要強制更新了！
         const APP_VERSION = "1.0.1";
 
-        // 檢查版本的邏輯
         const lastVersion = localStorage.getItem('app_version');
         if (lastVersion !== APP_VERSION) {
             localStorage.setItem('app_version', APP_VERSION);
-            // 強制瀏覽器無視快取重新整理一次
             window.location.reload(true);
         }
 
@@ -25,7 +22,8 @@
         import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBfxxWWvnMlycR7IlGLo2WnilnqHR6eo4U",
+            // 已更新為你的新金鑰
+            apiKey: "AIzaSyBJaLkXO_LnNnsBjqA7LOg6qwNIXo-feLk",
             authDomain: "carrrrr-babd6.firebaseapp.com",
             projectId: "carrrrr-babd6",
             storageBucket: "carrrrr-babd6.firebasestorage.app",
@@ -168,7 +166,6 @@
             padding: 0; 
             transition: 0.3s; 
             min-height: 100vh;
-            /* 避免 iOS 回彈效果 */
             overscroll-behavior-y: contain;
         }
         
@@ -222,7 +219,6 @@
         .profile-card { background: white; padding: 22px; border-radius: 28px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.04); }
         .menu-list { background: white; border-radius: 28px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.04); margin-bottom: 20px; }
         .menu-item { padding: 20px 22px; border-bottom: 1px solid #F8F9FA; display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--header-text); }
-        .menu-item:last-child { border-bottom: none; }
         
         .color-dot { width: 42px; height: 42px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; }
 
@@ -298,7 +294,7 @@
                     <span style="color:var(--primary-blue); font-size: 14px; font-weight: 900;">下載檔案</span>
                 </div>
                 <label class="menu-item">
-                    <span>📥 匯入備份檔案</span>
+                    <span>📥 匯出備份檔案</span>
                     <span style="color:var(--primary-blue); font-size: 14px; font-weight: 900;">選擇並匯入</span>
                     <input type="file" accept=".json" style="display:none;" onchange="importData(event)">
                 </label>
